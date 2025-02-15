@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <title>Passarinho DVD</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script>
+
+// configuração do Phaser
+var config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
+// criação do jogo
+var game = new Phaser.Game(config);
+var passarinho;
+var velX = 3; // velocidade inicial no eixo X
+var velY = 3; // velocidade inicial no eixo Y
+var acertosPerfeitos = 0; // contador de acertos perfeitos
+var margemCanto = 15; // margem de 15px para o "Acerto Perfeito", pq antes acertar o canto tava quase impossivel
+
+// diferentes sprites do pássaro
+var coresPassaro = ['bird-red', 'bird-purple', 'bird-green'];
+
+// pré-carrega as imagens e sprites
+function preload() {
+    this.load.image('bg', 'assets/bg_space.png'); // Carrega o fundo
+    this.load.spritesheet('bird-red', 'assets/bird-red.png', { frameWidth: 75, frameHeight: 75 });
+    this.load.spritesheet('bird-purple', 'assets/bird-purple.png', { frameWidth: 75, frameHeight: 75 });
+    this.load.spritesheet('bird-green', 'assets/bird-green.png', { frameWidth: 75, frameHeight: 75 });
+}
+
+// criação dos objetos na tela
+function create() {
+    this.add.image(400, 300, 'bg').setScale(1.2); // adiciona o fundo
+    passarinho = this.add.sprite(100, 300, 'bird-red').setScale(1.3);
+
+    // exibição pontuação de Acertos Perfeitos
+    this.textoPontos = this.add.text(20, 20, 'Acertos Perfeitos: 0', { fontSize: '24px', fill: '#fff' });
+
+    // animação de voo para cada cor do pássaro
+    coresPassaro.forEach(cor => {
+        this.anims.create({
+            key: 'fly-' + cor, 
+            frames: this.anims.generateFrameNumbers(cor, { start: 0, end: 7 }),
+            frameRate: 10,
+            repeat: -1
+        });
+    });
+
+    passarinho.anims.play('fly-bird-red', true); // inicia a animação com o pássaro vermelho
+}
+
+// função de atualização contínua
+function update() { 
+    let bateuNaParede = false;
+    let acertouCanto = false;
+
+    // move o pássaro
+    passarinho.x += velX;
+    passarinho.y += velY;
+
+    // verifica colisão com as bordas da tela no eixo X
+    if (passarinho.x >= 800 - 37 || passarinho.x <= 37) { 
+        velX *= -1; // inverte a direção
+        passarinho.setFlip(velX < 0, false); // vira o sprite
+        bateuNaParede = true;
+    }
+
+    // verifica colisão com as bordas da tela no eixo Y
+    if (passarinho.y >= 600 - 37 || passarinho.y <= 37) { 
+        velY *= -1; // inverte a direção no eixo Y
+        bateuNaParede = true;
+    }
+
+    // 🔥 verifica se o pássaro acertou um dos quatro cantos 
+    if ((passarinho.x <= 37 + margemCanto || passarinho.x >= 800 - 37 - margemCanto) && 
+        (passarinho.y <= 37 + margemCanto || passarinho.y >= 600 - 37 - margemCanto)) {
+        acertouCanto = true;
+        acertosPerfeitos++; // aumenta a contagem de acertos perfeitos
+    }
+
+    // se bateu na parede, troca de cor e ativa efeitos especiais se for um acerto perfeito
+    if (bateuNaParede) {
+        trocarSprite();
+
+        if (acertouCanto) {
+            efeitoAcertoPerfeito();
+        }
+    }
+}
+
+// função que troca o sprite do pássaro quando ele bate na borda
+function trocarSprite() {
+    var novaCor = Phaser.Math.RND.pick(coresPassaro); // Escolhe um sprite aleatório
+    passarinho.setTexture(novaCor); // Muda a textura para a nova cor
+    passarinho.anims.play('fly-' + novaCor, true); // Recomeça a animação na nova cor
+}
+
+// função que cria um efeito quando o pássaro acerta o canto da tela
+function efeitoAcertoPerfeito() {
+    let cena = passarinho.scene;
+    
+    // flash branco cobrindo a tela
+    let flash = cena.add.rectangle(400, 300, 800, 600, 0xffffff).setAlpha(0.7);
+
+    // efeito de piscar usando o `for`
+    for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+            flash.setAlpha(flash.alpha - 0.2);
+        }, i * 70);
+    }
+
+    // remove o flash depois de um tempo
+    setTimeout(() => flash.destroy(), 350);
+
+    // atualiza o texto da pontuação
+    cena.textoPontos.setText('Acertos Perfeitos: ' + acertosPerfeitos);
+}
+
+</script>
+
+</body>
+</html>
